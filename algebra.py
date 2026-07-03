@@ -1,3 +1,4 @@
+
 import numpy as np
 
 
@@ -42,11 +43,14 @@ def find_pivot(M):
 
     ratios = np.where(col > 0, rhs / col, np.inf)
 
+    if np.all(np.isinf(ratios)):
+        return None, pivot_col, ratios
+
     pivot_row = np.argmin(ratios) + 1
 
     return pivot_row, pivot_col, ratios
 
-def simplex(z, i):
+def simplex(z, i, max_iter=200):
 
     n = len(z) - 1 
     m = len(i)
@@ -61,11 +65,20 @@ def simplex(z, i):
 
     lista = [(M.copy(), None)]
 
-
+    status = "otimo"
+    
+    it = 0
     while np.any(M[0, 1:-2] < 0):
-
+        if it > max_iter:
+            status = "max_iter"
+            break
+        
         pivot_row, pivot_col, ratios = find_pivot(M)
 
+        if pivot_row is None:
+            status = "ilimitado"
+            break
+            
         M[pivot_row, 0] = nomes[pivot_col - 1]
 
         # Atualiza coluna das razões
@@ -89,33 +102,4 @@ def simplex(z, i):
 
         lista.append((M.copy(), (pivot_row, pivot_col)))
 
-    return lista
-
-
-if __name__ == "__main__":
-    # função objetivo
-    z = np.array([50, 40, 30, 20, 0], dtype=float)
-
-    # inequações
-    i = np.array([
-        [2, 1, 1, 1, 100],
-        [1, 3, 2, 1, 120],
-        [2, 2, 1, 3, 150],
-        [1, 1, 2, 2, 90],
-    ], dtype=float)
-
-    a = simplex(z, i)
-
-    for idx, (M, pivot) in enumerate(a):
-        print(f"I {idx}:")
-
-        M_print = M.copy()
-        M_print[:, 1:] = np.round(M_print[:, 1:].astype(float), 2)
-        print(M_print)
-
-        if pivot is None:
-            print("Pivot: -")
-        else:
-            print(f"Pivot: ({pivot[0]}, {pivot[1]}) = {M[pivot[0], pivot[1]]}")
-
-        print()
+    return lista, status
